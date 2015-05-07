@@ -31,16 +31,19 @@
 
       <ion-content ng-controller="MapController as mc">
           <div id="map" data-tap-disabled="true"></div>
-            <h1>User Location</h1>
-            <h5 ng-if="data.success"><strong>Latitude:</strong> {{data.lat}} </h5>
-            <h5 ng-if="data.success"><strong>Longitude:</strong> {{data.lng}} </h5>
-            <h4 ng-if="data.ErrCode==1"> Permission to access location is denied </h4>
-            <h4 ng-if="data.ErrCode==2"> Position unavailable at the moment </h4>
-            <h4 ng-if="data.ErrCode==2"> Network unavailable </h4>
-            <h5><strong>Time stamp</strong>: {{data.timeStamp | date:'yyyy-MM-dd HH:mm:ss'}}
-            <br><br>
-            <button class="button button-balanced" ng-click="getLocation()" id="getLocation-btn">Get Location</button> 
-      </p></ion-content>
+          <h2>User Location</h2>
+          <h5 ng-if="data.success &amp;&amp; watchID"><strong>Latitude:</strong> {{data.lat}} </h5>
+          <h5 ng-if="data.success &amp;&amp; watchID"><strong>Longitude:</strong> {{data.lng}} </h5>
+
+          <h4 ng-if="data.ErrCode==1 &amp;&amp; watchID"> Permission to access location is denied </h4>
+          <h4 ng-if="data.ErrCode==2 &amp;&amp; watchID"> Position unavailable at the moment </h4>
+          <h4 ng-if="data.ErrCode==3 &amp;&amp; watchID"> Network unavailable </h4>
+          <h5 ng-if="watchID"><strong>Time stamp</strong>: {{data.timeStamp | date:&apos;yyyy-MM-dd HH:mm:ss&apos;}}</h5>
+          <h4 ng-if="debugInfo">Is tracking: {{watchID!=null}} <h4>
+          <h4 ng-if="debugInfo">Debug info: {{data}} </h4>
+          <button class="button button-balanced" ng-click="toggleTracking()" id="getLocation-btn">Toggle Tracking</button> 
+          <button class="button button-dark" ng-click="debugInfo=!debugInfo" id="getLocation-btn">Toggle Debug Info</button> 
+      </h4></h4></ion-content>
 
     </ion-pane>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>

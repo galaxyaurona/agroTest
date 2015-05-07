@@ -9,6 +9,7 @@
 }
 
 #getLocation-btn{
-	margin-left:30%;
-	margin-right:30%;
+	margin:auto auto;
+	left:auto;
+	right:auto;
 }
