@@ -3,9 +3,9 @@
 // angular.module is a global place for creating, registering and retrieving Angular modules
 // 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
 // the 2nd parameter is an array of 'requires'
-angular.module('starter', ['ionic'])
+angular.module('starter', ['ionic','ngCordova'])
 
-.run(function($ionicPlatform) {
+.run(function($ionicPlatform,$rootScope) {
   $ionicPlatform.ready(function() {
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
     // for form inputs)
@@ -18,7 +18,7 @@ angular.module('starter', ['ionic'])
   });
 })
 
-.controller('MapController', function($scope, $ionicLoading) {
+.controller('MapController', function($scope, $ionicLoading,$cordovaDevice) {
 
     var posOptions = {timeout: 2000, enableHighAccuracy: true}; // map option, set time out 100 msand high accuracy
 
@@ -75,6 +75,18 @@ angular.module('starter', ['ionic'])
           title: "Current Location"
       });
       $scope.$apply()
+      // testing this
+      //$scope.S3.upload($scope.data);
+      var bucketParams = {
+        Bucket:"argotraqloctest",
+        Key:$scope.deviceId+"/"+$scope.data.timeStamp.valueOf(),
+        ACL:'bucket-owner-full-control',
+        Body:JSON.stringify($scope.data)
+      }
+      S3.putObject(bucketParams,function(err,data){
+        if (err) {console.log(err, err.stack); $scope.uploaded=false;} // an error occurred
+        else     {console.log(data);$scope.uploaded=true;}           // successful response
+      });
    }
 
 
@@ -85,7 +97,35 @@ angular.module('starter', ['ionic'])
       $scope.data.lat = "0";
       $scope.data.lng = "0";
       $scope.data.timeStamp = new Date();
-      $scope.data.error
       $scope.$apply()
    }
+
+   //------ AWS SERVICE HERE
+   var params = {
+       IdentityPoolId: 'us-east-1:712f1858-07f9-424a-8a6a-48e0c467da7e',
+       IdentityId:"us-east-1:bac8ffda-07a0-4c8b-b96c-cb77aad22edb"
+   };
+   AWS.config.region = 'us-east-1';
+   AWS.config.credentials = new AWS.CognitoIdentityCredentials(params);
+
+   AWS.config.credentials.get(function(err) {
+       if (!err) {
+           console.log("Cognito Identity Id: " + AWS.config.credentials.identityId);
+           $scope.cognigtoIdentity = AWS.config.credentials.identityId;
+           $scope.awsCredentials = AWS.config.credentials;
+       }
+   });
+   console.log($scope.awsCredentials);
+   //console.log($cordovaDevice.getUUID());
+   //$scope.deviceId = window.device.uuid;
+
+  document.addEventListener("deviceready", function () {
+     console.log($cordovaDevice);
+     $scope.deviceId= $cordovaDevice.getUUID();
+  }, false);
+
+  S3 = new AWS.S3($scope.awsCredentials);
+  console.log(S3);
 });
+
+

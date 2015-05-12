@@ -14,8 +14,9 @@
 
     <!-- ionic/angularjs js -->
     <script src="lib/ionic/js/ionic.bundle.js"></script>
-
+    
     <!-- cordova script (this will be a 404 during development) -->
+    <script src="lib/ngCordova/dist/ng-cordova.js"></script>
     <script src="cordova.js"></script>
     <!--Map js-->
     <script src="js/ng-map.min.js"></script>
@@ -41,11 +42,15 @@
           <h5 ng-if="watchID"><strong>Time stamp</strong>: {{data.timeStamp | date:&apos;yyyy-MM-dd HH:mm:ss&apos;}}</h5>
           <h4 ng-if="debugInfo">Is tracking: {{watchID!=null}} <h4>
           <h4 ng-if="debugInfo">Debug info: {{data}} </h4>
+          <h4 ng-if="debugInfo">DeviceId: {{deviceId}} </h4>
+          <h4 ng-if="debugInfo">Cognito Identity: {{cognigtoIdentity}} </h4>
+          <h4 ng-if="debugInfo">Uploading: {{uploaded}} </h4>
           <button class="button button-balanced" ng-click="toggleTracking()" id="getLocation-btn">Toggle Tracking</button> 
           <button class="button button-dark" ng-click="debugInfo=!debugInfo" id="getLocation-btn">Toggle Debug Info</button> 
       </h4></h4></ion-content>
 
     </ion-pane>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.27.min.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
   </body>
 </html>
