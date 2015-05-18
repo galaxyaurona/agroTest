@@ -55,6 +55,7 @@ angular.module('starter', ['ionic',"ngCordova"])
     $http.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
 
     $scope.login = function() {
+      // create an in app browser and listen to the call back
         var ref = window.open('https://accounts.google.com/o/oauth2/auth?client_id=' + clientId + '&redirect_uri=http://localhost/callback&scope=https://www.googleapis.com/auth/userinfo.email&approval_prompt=force&response_type=code&access_type=offline', '_blank', 'location=no');
         ref.addEventListener('loadstart', function(event) { 
             if((event.url).startsWith("http://localhost/callback")) {
@@ -95,17 +96,19 @@ angular.module('starter', ['ionic',"ngCordova"])
     // initalize cognitoObject with idToken
     $scope.cognitoObject = new cognitoObject(idToken);
 
-    console.log($scope.cognitoObject);
     // initialize data object to send
-    $scope.data = {"success":true,"ErrCode":0,"lat":0,"lng":0,timeStamp:new Date()}; 
+    $scope.data = {"success":true,"ErrCode":0,"lat":0,"lng":0,timeStamp:new Date(),deviceModel:"",deviceId:"",userEmail:$scope.cognitoObject.userEmail}; 
     
     // initialize allowing upload
     
     $scope.uploading=true;
     // get google response for debugging purpose
     $scope.googleResponse = googleResponse;
-    // initialize marker on the map
+
     S3 = new AWS.S3($scope.cognitoObject.awsCredentials);
+    $scope.s3Object = new s3Object();
+    console.log($scope.s3Object)
+
     // this call backfunction is used to update data object 
    var updateLocationData= function(pos){
       // update the data json info
@@ -122,12 +125,7 @@ angular.module('starter', ['ionic',"ngCordova"])
       $scope.$apply();
 
       // Initialize parameter for S3 bucket 
-    
-      S3.putObject(bucketParams,function(err,data){
-
-        if (err) {$scope.uploaded=false;$scope.uploadError = err} // an error occurred
-        else     {$scope.uploaded=true;}           // successful response
-      });
+      $scope.uploaded = $scope.s3Object.upload($scope.data.deviceId+"/"+$scope.data.timeStamp.valueOf(),$scope.data)
    }
 
    // this callback is used to handle error when pull notifaction
@@ -154,9 +152,6 @@ angular.module('starter', ['ionic',"ngCordova"])
         trackFunction();
          // initialize a watch for change in location
         $scope.watchID = setInterval(trackFunction,locationUpdateInterval);
-
-        // assign google map to map canvas at the front end
-        //$scope.map = map;
     });
 
    // TOGGLE TRACKING METHOD
@@ -179,52 +174,13 @@ angular.module('starter', ['ionic',"ngCordova"])
         $scope.watchID =  setInterval(trackFunction,locationUpdateInterval);
 
       }
-
-      return $scope;
    }
 
 
-    var bucketParams = {
-        // bucket name
-        Bucket:"argotraqloctest", 
-        // key of opject to put data in ( will be directory/filename on s3) 
-        //,in this case store in a file whose name is device'sID
-
-        Key:"NeilTest/"+$scope.deviceId,
-        
-        // full access for testing
-        ACL:'bucket-owner-full-control', // full access for testing
-
-        // Json version of data
-        Body:JSON.stringify($scope.data) 
-
-      }   
-      $scope.bucketParams = bucketParams;
-      console.log(bucketParams);
-
-
-
   document.addEventListener("deviceready", function () {
-     $scope.deviceId= $cordovaDevice.getUUID();
-     bucketParams ={
-        // bucket name
-        Bucket:"argotraqloctest", 
-        // key of opject to put data in ( will be directory/filename on s3) 
-        //,in this case store in a file whose name is device'sID
-
-        Key:"NeilTest/"+$scope.deviceId,
-        
-        // full access for testing
-        ACL:'bucket-owner-full-control', // full access for testing
-
-        // Json version of data
-        Body:JSON.stringify($scope.data)
-
-      };
+     $scope.data.deviceId= $cordovaDevice.getUUID();
+     $scope.data.deviceModel= $cordovaDevice.getModel();
   }, false);
-
-
-
 
 
 
@@ -245,7 +201,7 @@ var mapObject = function() {
                 };
     // initialize the map with map option
     vm.map=new google.maps.Map(document.getElementById("map"), vm.mapOptions);
-    
+    vm.markerTitle = "Current Location";
     // initalize marker
     vm.myLocation = new  google.maps.Marker();
     // helper method to update local map
@@ -257,9 +213,12 @@ var mapObject = function() {
       vm.myLocation = new google.maps.Marker({ 
           position: new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude),
           map: vm.map,
-          title: "Current Location"
+          title: vm.markerTitle
       });
     };
+    vm.setMarkerTitle = function(markerTitle){
+      vm.markerTitle = markerTitle;
+    }
     vm.stopTracking =function(){
       vm.myLocation.setMap(null);
     }
@@ -316,4 +275,64 @@ var cognitoObject = function(id_token){
    });
 
    return vm;
+}
+
+var s3Object = function(awsCredentials){
+  var vm = this;
+  vm.S3 = new AWS.S3(awsCredentials);
+  vm.bucket = "argotraqloctest"
+  vm.path = "NeilTest/";
+  vm.filename= '';
+  vm.data='';
+  vm.bucketParams = {
+        // bucket name
+        Bucket:vm.bucket, 
+        // key of opject to put data in ( will be directory/filename on s3) 
+        //,in this case store in a file whose name is device'sID
+
+        Key: vm.path+vm.filename,
+        
+        // full access for testing
+        ACL:'bucket-owner-full-control', // full access for testing
+
+        // Json version of data
+        Body:JSON.stringify(vm.data) 
+
+      } ;
+  vm.setBucket =function(bucket){
+    vm.bucket = bucket
+  }
+  vm.setFileName = function(filename){
+    vm.bucketParams.Key = vm.path+filename;
+  }
+
+  vm.setPath = function(path){
+    vm.path = path;
+  }
+  vm.setData = function(data){
+     vm.bucketParams.Body = JSON.stringify(data);
+  }
+
+  vm.upload= function(filename,file){
+      vm.setFileName(filename);
+      vm.setData(file);
+      var result = false;
+      vm.S3.putObject(vm.bucketParams,function(err,data){
+        if (err) {result=err} // an error occurred
+        else     {result=true;} // successful response
+
+      });  
+      return result;
+  }
+  /*vm.uploadToBucket= function(bucket,filename,file){
+      vm.setFileName(filename);
+      vm.setData(data);
+      var tempParam= vm.bucketParams;
+      tempParams.Bucket = bucket; 
+      vm.S3.putObject(tempParams,function(err,data){
+        if (err) {return err} // an error occurred
+        else     {return true;} // successful response
+      });
+  }*/
+  return vm      
 }

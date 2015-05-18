@@ -42,15 +42,12 @@
 
     <script type="text/ng-template" id="login.html">
 
-      <ion-view ng-controller="LoginController" title="Oauth Login">
+      <ion-view ng-controller="LoginController" title="ArgoTraq Login">
           <ion-content>
               <div>
                   <div class="padding">
-                      <button ng-click="login()" class="button button-block button-stable">
+                      <button ng-click="login()" class="button button-block button-positive">
                           Sign In
-                      </button>
-                      <button ng-click="goToMap()" class="button button-block button-stable">
-                          Go To Map
                       </button>
                   </div>
               </div>
@@ -61,7 +58,7 @@
 
     <script type="text/ng-template" id="map.html">
 
-      <ion-view ng-controller="MapController as mc" title="Oauth Secure">  
+      <ion-view ng-controller="MapController as mc" title="ArgoTraq">  
           <ion-content>
               <div id="map" data-tap-disabled="true"></div>
               <h2>User Location</h2>
@@ -75,12 +72,11 @@
 
               <h4 ng-if="debugInfo">Is tracking: {{watchID!=null}} </h4>
               <h4 ng-if="debugInfo">Debug info: {{data}} </h4>
-              <h4 ng-if="debugInfo">DeviceId: {{deviceId}} </h4>
+              <h4 ng-if="debugInfo">Device Info: {{data.deviceModel}} with id:{{data.deviceId}} </h4>
               <h4 ng-if="debugInfo">Cognito Identity: {{cognitoObject.cognigtoIdentity}} </h4>
               <h4 ng-if="debugInfo">Cognito ErrorMessage: {{cognitoObject.errMessage}} </h4>
               <h4 ng-if="debugInfo">User email: {{cognitoObject.userEmail}} </h4>
               <h4 ng-if="debugInfo">Allow Uploading: {{uploading}} </h4>
-              <h4 ng-if="debugInfo">Bucket Param: {{bucketParams}} </h4>
               <h4 ng-if="debugInfo">Uploaded: {{uploaded}} </h4>
               <h4 ng-if="debugInfo">Upload error: {{uploadError}} </h4>
               <h4 ng-if="debugInfo">Google response: {{googleResponse}}  </h4>
