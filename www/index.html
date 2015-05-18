@@ -4,7 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
     <title></title>
-
     <link href="lib/ionic/css/ionic.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
 
@@ -14,43 +13,103 @@
 
     <!-- ionic/angularjs js -->
     <script src="lib/ionic/js/ionic.bundle.js"></script>
-    
+
     <!-- cordova script (this will be a 404 during development) -->
-    <script src="lib/ngCordova/dist/ng-cordova.js"></script>
+     <script src="lib/ngCordova/dist/ng-cordova.js"></script>
     <script src="cordova.js"></script>
-    <!--Map js-->
-    <script src="js/ng-map.min.js"></script>
+    <!--JWT need for decoding token-->
+    <script src="lib/jsrsasign-4.7.0-all-min.js"></script>
     <!-- your app's js -->
+
     <script src="js/app.js"></script>
+
   </head>
   <body ng-app="starter">
+  
+    <ion-nav-bar class="bar-positive"></ion-nav-bar>
 
-    <ion-pane>
-      <ion-header-bar class="bar-balanced">
-        <h1 class="title">Argro Traq Location test</h1>
-      </ion-header-bar>
 
-      <ion-content ng-controller="MapController as mc">
-          <div id="map" data-tap-disabled="true"></div>
-          <h2>User Location</h2>
-          <h5 ng-if="data.success &amp;&amp; watchID"><strong>Latitude:</strong> {{data.lat}} </h5>
-          <h5 ng-if="data.success &amp;&amp; watchID"><strong>Longitude:</strong> {{data.lng}} </h5>
 
-          <h4 ng-if="data.ErrCode==1 &amp;&amp; watchID"> Permission to access location is denied </h4>
-          <h4 ng-if="data.ErrCode==2 &amp;&amp; watchID"> Position unavailable at the moment </h4>
-          <h4 ng-if="data.ErrCode==3 &amp;&amp; watchID"> Network unavailable </h4>
-          <h5 ng-if="watchID"><strong>Time stamp</strong>: {{data.timeStamp | date:&apos;yyyy-MM-dd HH:mm:ss&apos;}}</h5>
-          <h4 ng-if="debugInfo">Is tracking: {{watchID!=null}} <h4>
-          <h4 ng-if="debugInfo">Debug info: {{data}} </h4>
-          <h4 ng-if="debugInfo">DeviceId: {{deviceId}} </h4>
-          <h4 ng-if="debugInfo">Cognito Identity: {{cognigtoIdentity}} </h4>
-          <h4 ng-if="debugInfo">Uploading: {{uploaded}} </h4>
-          <button class="button button-balanced" ng-click="toggleTracking()" id="getLocation-btn">Toggle Tracking</button> 
-          <button class="button button-dark" ng-click="debugInfo=!debugInfo" id="getLocation-btn">Toggle Debug Info</button> 
-      </h4></h4></ion-content>
+          <ion-nav-view></ion-nav-view>
 
-    </ion-pane>
+
+
+
+
+
+    <!--Templates-->
+
+
+    <script type="text/ng-template" id="login.html">
+
+      <ion-view ng-controller="LoginController" title="Oauth Login">
+          <ion-content>
+              <div>
+                  <div class="padding">
+                      <button ng-click="login()" class="button button-block button-stable">
+                          Sign In
+                      </button>
+                      <button ng-click="goToMap()" class="button button-block button-stable">
+                          Go To Map
+                      </button>
+                  </div>
+              </div>
+          </ion-content>
+      </ion-view>
+
+    </script>
+
+    <script type="text/ng-template" id="map.html">
+
+      <ion-view ng-controller="MapController as mc" title="Oauth Secure">  
+          <ion-content>
+              <div id="map" data-tap-disabled="true"></div>
+              <h2>User Location</h2>
+              <h5 ng-if="data.success &amp;&amp; watchID"><strong>Latitude:</strong> {{data.lat}} </h5>
+              <h5 ng-if="data.success &amp;&amp; watchID"><strong>Longitude:</strong> {{data.lng}} </h5>
+
+              <h4 ng-if="data.ErrCode==1 &amp;&amp; watchID"> Permission to access location is denied </h4>
+              <h4 ng-if="data.ErrCode==2 &amp;&amp; watchID"> Position unavailable at the moment </h4>
+              <h4 ng-if="data.ErrCode==3 &amp;&amp; watchID"> Network unavailable </h4>
+              <h5 ng-if="watchID"><strong>Time stamp</strong>: {{data.timeStamp | date:&apos;yyyy-MM-dd HH:mm:ss&apos;}}</h5>
+
+              <h4 ng-if="debugInfo">Is tracking: {{watchID!=null}} </h4>
+              <h4 ng-if="debugInfo">Debug info: {{data}} </h4>
+              <h4 ng-if="debugInfo">DeviceId: {{deviceId}} </h4>
+              <h4 ng-if="debugInfo">Cognito Identity: {{cognitoObject.cognigtoIdentity}} </h4>
+              <h4 ng-if="debugInfo">Cognito ErrorMessage: {{cognitoObject.errMessage}} </h4>
+              <h4 ng-if="debugInfo">User email: {{cognitoObject.userEmail}} </h4>
+              <h4 ng-if="debugInfo">Allow Uploading: {{uploading}} </h4>
+              <h4 ng-if="debugInfo">Bucket Param: {{bucketParams}} </h4>
+              <h4 ng-if="debugInfo">Uploaded: {{uploaded}} </h4>
+              <h4 ng-if="debugInfo">Upload error: {{uploadError}} </h4>
+              <h4 ng-if="debugInfo">Google response: {{googleResponse}}  </h4>
+
+              <button class="button button-balanced" ng-click="toggleTracking()" id="getLocation-btn">Toggle Tracking</button> 
+              <button class="button button-dark" ng-click="debugInfo=!debugInfo" id="getLocation-btn">Toggle Debug Info</button> 
+              <button class="button button-energized" ng-click="uploading=!uploading" id="getLocation-btn">Toggle upload</button>
+          </ion-content>
+      </ion-view>
+
+    </script>
+  
+    <div id="amazon-root"></div>
+    <script type="text/javascript">
+
+      window.onAmazonLoginReady = function() {
+        amazon.Login.setClientId('amzn1.application-oa2-client.82d067513c644adaafa3a0f652f076e8');
+      };
+      (function(d) {
+        var a = d.createElement('script'); a.type = 'text/javascript';
+        a.async = true; a.id = 'amazon-login-sdk';
+        a.src = 'https://api-cdn.amazon.com/sdk/login1.js';
+        d.getElementById('amazon-root').appendChild(a);
+      })(document);
+
+    </script>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.27.min.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
+
   </body>
+
 </html>

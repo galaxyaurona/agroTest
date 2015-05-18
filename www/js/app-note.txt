@@ -1,0 +1,25 @@
+maincontroller logic
+
+*FOR MAP/TRACKING
+	INITIALIZATION:
+		STEP 1: initialize option for map and tracker.
+		STEP 2: initialize the google map through library google map API.
+		STEP 3: initialize marker to put on google map.
+		STEP 4: initialize the map canvas on front end by waiting for the window to load, assign map to map canvas. ALSO set the watchID to a timer with setInterval(watchFunction,timeout)
+
+	Toggle tracking:
+		IF it is currently TRACKING, clear the interval that is assigned to the watchID
+		ELSE
+		reinitialize the interval and assign the the watch ID
+
+			NOTE: trackFunction is a function wrapper , calling the window.geolocation.getCurrentLocation(success,error,data)
+		Alternatively use watch , assign watchId to  window.geolocation.watchID, when toggle use clearWatch;
+
+	UpdateLocationData(pos)	
+
+		Definition: a success callback for getCurrentLocation()
+
+		Function flow: Assign retreived location data to
+
+*FOR DATA
+	STEP 1: initialize $scope.data
