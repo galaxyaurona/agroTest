@@ -9,7 +9,7 @@ var accountID = "940653267411";
 // MAP PARAMETER HERE
 var posOptions = {timeout: 5000, enableHighAccuracy: true}; 
 
-var locationUpdateInterval = 30000; // in ms
+var locationUpdateInterval = 2000; // in ms
     // initialized default location and map options
 
 
@@ -90,7 +90,7 @@ angular.module('starter', ['ionic',"ngCordova"])
 .controller('MapController', function($scope, $ionicLoading,$cordovaDevice) {
 
     //start tracking 
-    $scope.deviceId=null;    
+    
     // get id token to display
     $scope.idToken = idToken;
     // initialize the map with map option global
@@ -99,7 +99,7 @@ angular.module('starter', ['ionic',"ngCordova"])
     $scope.cognitoObject = new cognitoObject(idToken);
 
     // initialize data object to send
-    $scope.data = {"lat":0,"lng":0,timeStamp:new Date()}; 
+    $scope.data = {"success":true,"ErrCode":0,"lat":0,"lng":0,timeStamp:new Date(),deviceModel:"",deviceId:"",userEmail:$scope.cognitoObject.userEmail}; 
     
     // initialize allowing upload
     
@@ -108,17 +108,11 @@ angular.module('starter', ['ionic',"ngCordova"])
     $scope.googleResponse = googleResponse;
 
     $scope.s3Object = new s3Object();
-    $scope.s3Object.setPath($scope.cognitoObject.cognigtoIdentity);
-   
-    console.log( $scope.s3Object)
-
     // this call backfunction is used to update data object 
    var updateLocationData= function(pos){
       // update the data json info
-
-      //$scope.data.success= true;
-      //$scope.data.ErrCode = 0;
-
+      $scope.data.success= true;
+      $scope.data.ErrCode = 0;
       $scope.data.lat = pos.coords.latitude;
       $scope.data.lng = pos.coords.longitude;
       $scope.data.timeStamp = new Date();
@@ -130,16 +124,14 @@ angular.module('starter', ['ionic',"ngCordova"])
       $scope.$apply();
 
       // Initialize parameter for S3 bucket 
-      $scope.uploaded = $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/"+$scope.data.timeStamp.valueOf()+"-"+$scope.deviceId,$scope.data);
+      $scope.uploaded = $scope.s3Object.upload($scope.data.deviceId+"/"+$scope.data.timeStamp.valueOf(),$scope.data);
       $scope.errorMessage
    }
 
    // this callback is used to handle error when pull notifaction
    var errorOccured= function(err){
-
-      //$scope.data.success= false;
-      //$scope.data.ErrCode= err.code;
-
+      $scope.data.success= false;
+      $scope.data.ErrCode= err.code;
       $scope.data.lat = "0";
       $scope.data.lng = "0";
       $scope.data.timeStamp = new Date();
@@ -172,7 +164,7 @@ angular.module('starter', ['ionic',"ngCordova"])
         $scope.watchID=null;
 
         // set data to unavailable
-        $scope.data={"lat":0,"lng":0,"timeStamp":new Date()};
+        $scope.data={"success":false,"ErrCode":3,"lat":0,"lng":0,"timeStamp":new Date()};
 
         // remove marker from map
         $scope.mapObject.stopTracking();
@@ -186,8 +178,8 @@ angular.module('starter', ['ionic',"ngCordova"])
 
 
   document.addEventListener("deviceready", function () {
-     $scope.deviceId= $cordovaDevice.getUUID();
-     $scope.deviceModel= $cordovaDevice.getModel();
+     $scope.data.deviceId= $cordovaDevice.getUUID();
+     $scope.data.deviceModel= $cordovaDevice.getModel();
   }, false);
 
 
@@ -288,8 +280,8 @@ var cognitoObject = function(id_token){
 var s3Object = function(awsCredentials){
   var vm = this;
   vm.S3 = new AWS.S3(awsCredentials);
-  vm.bucket = "argotraq-data"
-  vm.path = "";
+  vm.bucket = "argotraqloctest"
+  vm.path = "NeilTest/";
   vm.filename= '';
   vm.data='';
   vm.uploadResult = false;

@@ -72,11 +72,12 @@
 
               <h4 ng-if="debugInfo">Is tracking: {{watchID!=null}} </h4>
               <h4 ng-if="debugInfo">Debug info: {{data}} </h4>
-              <h4 ng-if="debugInfo">Device Info: {{data.deviceModel}} with id:{{data.deviceId}} </h4>
+              <h4 ng-if="debugInfo">Device Info: {{deviceModel}} with id:{{deviceId}} </h4>
               <h4 ng-if="debugInfo">Cognito Identity: {{cognitoObject.cognigtoIdentity}} </h4>
               <h4 ng-if="debugInfo">Cognito ErrorMessage: {{cognitoObject.errMessage}} </h4>
               <h4 ng-if="debugInfo">User email: {{cognitoObject.userEmail}} </h4>
               <h4 ng-if="debugInfo">Allow Uploading: {{uploading}} </h4>
+
               <h4 ng-if="debugInfo">Uploaded: {{uploaded}} </h4>
               <h4 ng-if="debugInfo">Upload error: {{uploadError}} </h4>
               <h4 ng-if="debugInfo">Google response: {{googleResponse}}  </h4>
