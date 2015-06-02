@@ -88,6 +88,15 @@ angular.module('starter', ['ionic',"ngCordova"])
 })
 
 .controller('MapController', function($scope, $ionicLoading,$cordovaDevice) {
+    // initial device 
+    $scope.maxX = -32768;
+    $scope.minX =  32768;
+    $scope.maxY = -32768;
+    $scope.minY =  32768;
+    $scope.maxZ = -32768;
+    $scope.minZ =  32768;
+    $scope.maxA = -32768;
+    $scope.minA =  32768;
 
     //start tracking 
     $scope.deviceId=null;    
@@ -97,32 +106,53 @@ angular.module('starter', ['ionic',"ngCordova"])
     $scope.mapObject = new mapObject(); 
     // initalize cognitoObject with idToken
     $scope.cognitoObject = new cognitoObject(idToken);
-
     // initialize data object to send
-    $scope.data = {"lat":0,"lng":0,timeStamp:new Date()}; 
-    
+    $scope.data = {"lat":0,"lng":0,maxAcceleration:0,minAcceleration:0,maxZ:0,minZ:0,timeStamp:new Date()}; 
+    $scope.initialized = false;
     // initialize allowing upload
-    
+
     $scope.uploading=true;
     // get google response for debugging purpose
     $scope.googleResponse = googleResponse;
 
-    $scope.s3Object = new s3Object();
-    $scope.s3Object.setPath($scope.cognitoObject.cognigtoIdentity);
-   
-    console.log( $scope.s3Object)
+    $scope.metaInf = {deviceId:"",deviceModel:"",email:"",lastTracked:"",lastObject:{}}
 
+    $scope.s3Object = new s3Object($scope.cognitoObject.awsCredentials);
+    $scope.metaInf.email=$scope.cognitoObject.userEmail;
+
+    // END INITIALIZATION
+
+    //console.log( $scope.s3Object)
     // this call backfunction is used to update data object 
+    $scope.toggleAccel = function (){
+      $scope.accelInfo =!$scope.accelInfo;
+    }
+    $scope.toggleIdentity = function (){
+      $scope.identityInfo =!$scope.identityInfo;
+    }
    var updateLocationData= function(pos){
-      // update the data json info
+      $scope.data.maxAcceleration = $scope.maxA;
+      $scope.data.minAcceleration = $scope.minA;
+      $scope.data.maxZ = $scope.maxZ;
+      $scope.data.minZ = $scope.minZ;
+      // reset max,min
+      $scope.maxX = -32768;
+      $scope.minX =  32768;
+      $scope.maxY = -32768;
+      $scope.minY =  32768;
+      $scope.maxZ = -32768;
+      $scope.minZ =  32768;
+      $scope.maxA = -32768;
+      $scope.minA =  32768;
 
       //$scope.data.success= true;
-      //$scope.data.ErrCode = 0;
+      $scope.errCode = 0;
 
       $scope.data.lat = pos.coords.latitude;
       $scope.data.lng = pos.coords.longitude;
       $scope.data.timeStamp = new Date();
-
+      $scope.metaInf.lastTracked = $scope.data.timeStamp.valueOf();
+      $scope.metaInf.lastObject = $scope.data;
       // update display map
       $scope.mapObject.updateMap(pos);
 
@@ -130,15 +160,42 @@ angular.module('starter', ['ionic',"ngCordova"])
       $scope.$apply();
 
       // Initialize parameter for S3 bucket 
-      $scope.uploaded = $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/"+$scope.data.timeStamp.valueOf()+"-"+$scope.deviceId,$scope.data);
-      $scope.errorMessage
+      if ($scope.uploading == true){
+        $scope.uploaded = $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/"+$scope.data.timeStamp.valueOf()+"-"+$scope.metaInf.deviceId,$scope.data);
+        $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/meta-"+$scope.metaInf.deviceId+"",$scope.metaInf);
+        $scope.errorMessage = "None"
+      }else{
+        $scope.uploaded = false
+      }
+     getMetas();
    }
 
+   var getMetas = function(callback){
+   
+     $scope.metas = []; // empty the metas object
+     $scope.mapObject.clearAllMarkers();
+     // list all the objects from the identity folder
+     $scope.s3Object.S3.listObjects({Bucket:$scope.s3Object.bucket,Prefix:$scope.cognitoObject.cognigtoIdentity+'/meta'},function(err,data){
+         $scope.metaKeys = data.Contents.map(function(object){ // maping call back to translate meta object to meta object keys
+           return object.Key;
+         });
+         console.log($scope.metaKeys);
+         metaStr = "meta-"
+         angular.forEach($scope.metaKeys,function(value){
+           if (value != metaStr.concat($scope.metaInf.deviceId) ) {
+             $scope.s3Object.getObject(value,function(meta){
+               $scope.metas.push(meta);
+               $scope.mapObject.displayValidMarker(meta);
+             });
+           }  
+         });
+    });
+   } 
    // this callback is used to handle error when pull notifaction
    var errorOccured= function(err){
 
       //$scope.data.success= false;
-      //$scope.data.ErrCode= err.code;
+      $scope.errCode= err.code;
 
       $scope.data.lat = "0";
       $scope.data.lng = "0";
@@ -151,16 +208,6 @@ angular.module('starter', ['ionic',"ngCordova"])
     function trackFunction() {
       navigator.geolocation.getCurrentPosition(updateLocationData, errorOccured, posOptions);
     };
-
-
-
-   // initialize the map canvas on front end
-   google.maps.event.addDomListener(window, 'load', function() {
-        // fire this oncce to initialize the map
-        trackFunction();
-         // initialize a watch for change in location
-        $scope.watchID = setInterval(trackFunction,locationUpdateInterval);
-    });
 
    // TOGGLE TRACKING METHOD
     $scope.toggleTracking = function()
@@ -177,23 +224,69 @@ angular.module('starter', ['ionic',"ngCordova"])
         // remove marker from map
         $scope.mapObject.stopTracking();
       }else{
-
+        trackFunction();
         // reinitialize a watch for location
         $scope.watchID =  setInterval(trackFunction,locationUpdateInterval);
 
       }
    }
 
+   $scope.devMotionHandler = function(data){
+     $scope.deviceMotion = data;
+     $scope.deviceAccleration = data.acceleration;
+     $scope.amplitude = Math.sqrt(data.acceleration.x*data.acceleration.x+data.acceleration.y*data.acceleration.y+data.acceleration.z*data.acceleration.z);
+     
+     if ($scope.amplitude > $scope.maxA) {
+       $scope.maxA = $scope.amplitude;
+     }
+     if ($scope.amplitude < $scope.minA) {
+       $scope.minA = $scope.amplitude;
+     }
+
+     if (data.acceleration.z> $scope.maxZ) {
+       $scope.maxZ = data.acceleration.z;
+     }
+     if (data.acceleration.z< $scope.minZ) {
+       $scope.minZ = data.acceleration.z;
+     }
+
+     if (data.acceleration.x> $scope.maxX) {
+       $scope.maxX = data.acceleration.x;
+     }
+     if (data.acceleration.x< $scope.minX) {
+       $scope.minX = data.acceleration.x;
+     }
+     if (data.acceleration.y> $scope.maxY) {
+       $scope.maxY = data.acceleration.y;
+     }
+     if (data.acceleration.y< $scope.minY) {
+       $scope.minY = data.acceleration.y;
+     }
+     if (data.acceleration.z> $scope.maxZ) {
+       $scope.maxZ = data.acceleration.z;
+     }
+     if (data.acceleration.z< $scope.minZ) {
+       $scope.minZ = data.acceleration.z;
+     }
+
+     $scope.$apply();
+   }
+
+
+  if (window.DeviceMotionEvent) {
+    $scope.motionSupport = "DeviceMotion is supported";
+     window.addEventListener('devicemotion', $scope.devMotionHandler);
+  }else{
+    $scope.motionSupport = "DeviceMotion is supported";
+  }
+
 
   document.addEventListener("deviceready", function () {
-     $scope.deviceId= $cordovaDevice.getUUID();
-     $scope.deviceModel= $cordovaDevice.getModel();
+
+     $scope.metaInf.deviceId= $cordovaDevice.getUUID();
+     $scope.metaInf.deviceModel= $cordovaDevice.getModel();
   }, false);
-
-
-
 });
-
 
 
 
@@ -207,12 +300,18 @@ var mapObject = function() {
                   zoom: 16,
                   mapTypeId: google.maps.MapTypeId.ROADMAP
                 };
+
+    vm.markers =[];            
     // initialize the map with map option
     vm.map=new google.maps.Map(document.getElementById("map"), vm.mapOptions);
     vm.markerTitle = "Current Location";
     // initalize marker
     vm.myLocation = new  google.maps.Marker();
     // helper method to update local map
+    vm.initializeMap =function(){
+      console.log('initialize');
+       vm.map=new google.maps.Map(document.getElementById("map"), vm.mapOptions);
+    };
     vm.updateMap = function(pos){
       vm.map.setCenter(new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude));
 
@@ -224,6 +323,36 @@ var mapObject = function() {
           title: vm.markerTitle
       });
     };
+
+    vm.displayValidMarker = function(meta){
+      var dateDiff = new Date()-new Date(meta.lastTracked);
+      console.log(dateDiff);
+      var dateThreshold = 24*60*60*1000;
+      if (dateDiff< dateThreshold){
+        marker = new google.maps.Marker({
+          position : new google.maps.LatLng(meta.lastObject.lat,meta.lastObject.lng),
+          map:vm.map,
+          title:meta.deviceID
+        }) 
+        vm.markers.push(marker)
+      }
+
+    } 
+    vm.clearAllMarkers = function(){ // manually clear marker
+      vm.markers.forEach(function(marker){
+        marker.setMap(null);
+      })
+    }
+
+    vm.setMarkerTitle = function(markerTitle){
+      vm.markerTitle = markerTitle;
+    }
+    vm.stopTracking =function(){
+      vm.myLocation.setMap(null);
+    }
+
+    return vm;
+
     vm.setMarkerTitle = function(markerTitle){
       vm.markerTitle = markerTitle;
     }

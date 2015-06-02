@@ -62,29 +62,55 @@
           <ion-content>
               <div id="map" data-tap-disabled="true"></div>
               <h2>User Location</h2>
-              <h5 ng-if="data.success &amp;&amp; watchID"><strong>Latitude:</strong> {{data.lat}} </h5>
-              <h5 ng-if="data.success &amp;&amp; watchID"><strong>Longitude:</strong> {{data.lng}} </h5>
+              <h5 ng-if="errCode==0 &amp;&amp; watchID"><strong>Latitude:</strong> {{data.lat}} </h5>
+              <h5 ng-if="errCode==0 &amp;&amp; watchID"><strong>Longitude:</strong> {{data.lng}} </h5>
 
-              <h4 ng-if="data.ErrCode==1 &amp;&amp; watchID"> Permission to access location is denied </h4>
-              <h4 ng-if="data.ErrCode==2 &amp;&amp; watchID"> Position unavailable at the moment </h4>
-              <h4 ng-if="data.ErrCode==3 &amp;&amp; watchID"> Network unavailable </h4>
+              <h4 ng-if="errCode==1 &amp;&amp; watchID"> Permission to access location is denied </h4>
+              <h4 ng-if="errCode==2 &amp;&amp; watchID"> Position unavailable at the moment </h4>
+              <h4 ng-if="errCode==3 &amp;&amp; watchID"> Network unavailable </h4>
               <h5 ng-if="watchID"><strong>Time stamp</strong>: {{data.timeStamp | date:&apos;yyyy-MM-dd HH:mm:ss&apos;}}</h5>
-
-              <h4 ng-if="debugInfo">Is tracking: {{watchID!=null}} </h4>
-              <h4 ng-if="debugInfo">Debug info: {{data}} </h4>
-              <h4 ng-if="debugInfo">Device Info: {{deviceModel}} with id:{{deviceId}} </h4>
-              <h4 ng-if="debugInfo">Cognito Identity: {{cognitoObject.cognigtoIdentity}} </h4>
-              <h4 ng-if="debugInfo">Cognito ErrorMessage: {{cognitoObject.errMessage}} </h4>
-              <h4 ng-if="debugInfo">User email: {{cognitoObject.userEmail}} </h4>
-              <h4 ng-if="debugInfo">Allow Uploading: {{uploading}} </h4>
-
-              <h4 ng-if="debugInfo">Uploaded: {{uploaded}} </h4>
-              <h4 ng-if="debugInfo">Upload error: {{uploadError}} </h4>
-              <h4 ng-if="debugInfo">Google response: {{googleResponse}}  </h4>
 
               <button class="button button-balanced" ng-click="toggleTracking()" id="getLocation-btn">Toggle Tracking</button> 
               <button class="button button-dark" ng-click="debugInfo=!debugInfo" id="getLocation-btn">Toggle Debug Info</button> 
               <button class="button button-energized" ng-click="uploading=!uploading" id="getLocation-btn">Toggle upload</button>
+              <br>
+              <button ng-if="debugInfo" class="button button-dark" ng-click="toggleAccel()" id="getLocation-btn">Toggle Acceleration Info</button>
+              <button ng-if="debugInfo" class="button button-dark" ng-click="toggleIdentity()" id="getLocation-btn">Toggle Identity info</button> 
+
+
+
+
+              <h4 ng-if="debugInfo">Is tracking: {{watchID!=null}} </h4>
+              <h4 ng-if="debugInfo">Debug info: {{data}} </h4>
+              <h4 ng-if="debugInfo && identityInfo">Device Info: {{metaInf.deviceModel}} with id:{{metaInf.deviceId}} </h4>
+              <h4 ng-if="debugInfo && identityInfo">Cognito Identity: {{cognitoObject.cognigtoIdentity}} </h4>
+              <h4 ng-if="debugInfo && identityInfo">Cognito ErrorMessage: {{cognitoObject.errMessage}} </h4>
+              <h4 ng-if="debugInfo && identityInfo">User email: {{metaInf.email}} </h4>
+              <h4 ng-if="debugInfo">Allow Uploading: {{uploading}} </h4>
+              
+              <h5 ng-if="debugInfo && accelInfo">Device motion: {{motionSupport}}</h5>
+              <h5 ng-if="debugInfo && accelInfo">Device motion: {{deviceMotion}}</h5>
+
+              <h5 ng-if="debugInfo && accelInfo">Device acceleration: {{deviceAccleration}}</h5> 
+              
+              <h5 ng-if="debugInfo && accelInfo">Acceleration amplitude: {{amplitude}}</h5> 
+              <h5 ng-if="debugInfo && accelInfo">Max amplitude: {{maxA}}</h5> 
+              <h5 ng-if="debugInfo && accelInfo">Min amplitude: {{minA}}</h5>  
+
+              <h5 ng-if="debugInfo && accelInfo">Acceleration max X: {{maxX}}</h5>
+              <h5 ng-if="debugInfo && accelInfo">Acceleration max X: {{minX}}</h5>
+
+              <h5 ng-if="debugInfo && accelInfo">Acceleration max Y: {{maxY}}</h5>
+              <h5 ng-if="debugInfo && accelInfo">Acceleration max Y: {{minY}}</h5>
+
+              <h5 ng-if="debugInfo && accelInfo">Acceleration max Z: {{maxZ}}</h5>
+              <h5 ng-if="debugInfo && accelInfo">Acceleration max Z: {{minZ}}</h5>
+
+              <h4 ng-if="debugInfo && accelInfo">Uploaded: {{uploaded}} </h4>
+              <h4 ng-if="debugInfo && accelInfo">Upload error: {{uploadError}} </h4>
+              <h4 ng-if="debugInfo && identityInfo ">Google response: {{googleResponse}}  </h4>
+              <
+
           </ion-content>
       </ion-view>
 
