@@ -110,7 +110,7 @@ angular.module('starter', ['ionic',"ngCordova"])
     $scope.data = {"lat":0,"lng":0,maxAcceleration:0,minAcceleration:0,maxZ:0,minZ:0,timeStamp:new Date()}; 
     $scope.initialized = false;
     // initialize allowing upload
-
+    $scope.debugInfo = true;
     $scope.uploading=true;
     // get google response for debugging purpose
     $scope.googleResponse = googleResponse;
@@ -123,13 +123,26 @@ angular.module('starter', ['ionic',"ngCordova"])
     // END INITIALIZATION
 
     //console.log( $scope.s3Object)
-    // this call backfunction is used to update data object 
-    $scope.toggleAccel = function (){
-      $scope.accelInfo =!$scope.accelInfo;
+  // calculate distance moved
+    function getDistanceFromLatLon(lat1,lon1,lat2,lon2) {
+      var R = 6371; // Radius of the earth in km
+      var dLat = deg2rad(lat2-lat1);  // deg2rad below
+      var dLon = deg2rad(lon2-lon1); 
+      var a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2)
+        ; 
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+      var d = R * c*1000; // Distance in m
+      return d;
     }
-    $scope.toggleIdentity = function (){
-      $scope.identityInfo =!$scope.identityInfo;
+
+    function deg2rad(deg) {
+      return deg * (Math.PI/180)
     }
+
+  // this call backfunction is used to update data object 
    var updateLocationData= function(pos){
       $scope.data.maxAcceleration = $scope.maxA;
       $scope.data.minAcceleration = $scope.minA;
@@ -148,6 +161,8 @@ angular.module('starter', ['ionic',"ngCordova"])
       //$scope.data.success= true;
       $scope.errCode = 0;
 
+      $scope.prevLat = $scope.data.lat;
+      $scope.prevLng = $scope.data.lng;
       $scope.data.lat = pos.coords.latitude;
       $scope.data.lng = pos.coords.longitude;
       $scope.data.timeStamp = new Date();
@@ -158,9 +173,14 @@ angular.module('starter', ['ionic',"ngCordova"])
 
       //propagate change through the scope
       $scope.$apply();
-
+      if ($scope.prevLat==0){ // special case initialization
+        $scope.changedDistance =0;
+      }else{
+        $scope.changedDistance= getDistanceFromLatLon($scope.data.lat,$scope.data.lng,$scope.prevLat,$scope.prevLng);
+      }
+      $scope.averageSpeed = $scope.changedDistance*1000/locationUpdateInterval*3.6 // m/s to something;
       // Initialize parameter for S3 bucket 
-      if ($scope.uploading == true){
+      if (($scope.uploading == true) && ($scope.changedDistance>25)){
         $scope.uploaded = $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/"+$scope.data.timeStamp.valueOf()+"-"+$scope.metaInf.deviceId,$scope.data);
         $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/meta-"+$scope.metaInf.deviceId+"",$scope.metaInf);
         $scope.errorMessage = "None"
@@ -210,26 +230,10 @@ angular.module('starter', ['ionic',"ngCordova"])
     };
 
    // TOGGLE TRACKING METHOD
-    $scope.toggleTracking = function()
-   {
-      // if is currently tracking
-      if ($scope.watchID) {
-        // clear the all location watch and set the watch id to null
-        clearInterval($scope.watchID);
-        $scope.watchID=null;
 
-        // set data to unavailable
-        $scope.data={"lat":0,"lng":0,"timeStamp":new Date()};
-
-        // remove marker from map
-        $scope.mapObject.stopTracking();
-      }else{
-        trackFunction();
-        // reinitialize a watch for location
-        $scope.watchID =  setInterval(trackFunction,locationUpdateInterval);
-
-      }
-   }
+   trackFunction();
+   // reinitialize a watch for location
+   $scope.watchID =  setInterval(trackFunction,locationUpdateInterval);
 
    $scope.devMotionHandler = function(data){
      $scope.deviceMotion = data;
