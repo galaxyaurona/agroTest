@@ -85,7 +85,7 @@
               <h4 ng-if="debugInfo && identityInfo">Cognito ErrorMessage: {{cognitoObject.errMessage}} </h4>
               <h4 ng-if="debugInfo && identityInfo">User email: {{metaInf.email}} </h4>
               <h4 ng-if="debugInfo">Allow Uploading: {{uploading}} </h4>
-
+              <h4> identityId : {{cognitoObject.cognigtoIdentity}} </h4>
 
               <h5 ng-if="debugInfo">Device acceleration: {{deviceAccleration}}</h5> 
               <h5 ng-if="debugInfo">Acceleration amplitude: {{amplitude}}</h5> 
@@ -103,7 +103,7 @@
               <h4> Distance moved: {{changedDistance}}</h4>
               <h4> Average Speed : {{averageSpeed}}</h4>
               <h4 ng-if="debugInfo">Uploaded: {{uploaded}} </h4>
-              <
+              
 `
           </ion-content>
       </ion-view>
