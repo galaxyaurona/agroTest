@@ -64,7 +64,10 @@
               <h2>User Location</h2>
               <h5 ng-if="errCode==0 &amp;&amp; watchID"><strong>Latitude:</strong> {{data.lat}} </h5>
               <h5 ng-if="errCode==0 &amp;&amp; watchID"><strong>Longitude:</strong> {{data.lng}} </h5>
-
+              <h4><strong>Distance moved: </strong> {{changedDistance}} </h5>
+              <h4> Average speed:{{averageSpeed}}</h4>
+              <h4> Max speed :{{data.maxSpeed}} </h4>
+              <h4> Min speed :{{data.minSpeed}} </h4>
               <h4 ng-if="errCode==1 &amp;&amp; watchID"> Permission to access location is denied </h4>
               <h4 ng-if="errCode==2 &amp;&amp; watchID"> Position unavailable at the moment </h4>
               <h4 ng-if="errCode==3 &amp;&amp; watchID"> Network unavailable </h4>
@@ -79,7 +82,7 @@
 
 
               <h4 ng-if="debugInfo">Is tracking: {{watchID!=null}} </h4>
-              <h4 ng-if="debugInfo">Debug info: {{data}} </h4>
+              <h4 ng-if="debugInfo">Debug info: <pre>{{prettyData}} </pre> </h4>
               <h4 ng-if="debugInfo && identityInfo">Device Info: {{metaInf.deviceModel}} with id:{{metaInf.deviceId}} </h4>
               <h4 ng-if="debugInfo && identityInfo">Cognito Identity: {{cognitoObject.cognigtoIdentity}} </h4>
               <h4 ng-if="debugInfo && identityInfo">Cognito ErrorMessage: {{cognitoObject.errMessage}} </h4>
@@ -92,16 +95,6 @@
               <h5 ng-if="debugInfo">Max amplitude: {{maxA}}</h5> 
               <h5 ng-if="debugInfo">Min amplitude: {{minA}}</h5>  
 
-              <h5 ng-if="debugInfo">Acceleration max X: {{maxX}}</h5>
-              <h5 ng-if="debugInfo">Acceleration max X: {{minX}}</h5>
-
-              <h5 ng-if="debugInfo">Acceleration max Y: {{maxY}}</h5>
-              <h5 ng-if="debugInfo">Acceleration max Y: {{minY}}</h5>
-
-              <h5 ng-if="debugInfo">Acceleration max Z: {{maxZ}}</h5>
-              <h5 ng-if="debugInfo">Acceleration max Z: {{minZ}}</h5>
-              <h4> Distance moved: {{changedDistance}}</h4>
-              <h4> Average Speed : {{averageSpeed}}</h4>
               <h4 ng-if="debugInfo">Uploaded: {{uploaded}} </h4>
               
 `

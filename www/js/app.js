@@ -9,7 +9,8 @@ var accountID = "940653267411";
 // MAP PARAMETER HERE
 var posOptions = {timeout: 5000, enableHighAccuracy: true}; 
 
-var locationUpdateInterval = 30000; // in ms
+var locationUpdateInterval = 5000; // in ms
+var locationUploadInterval = 30000;
     // initialized default location and map options
 
 
@@ -89,15 +90,11 @@ angular.module('starter', ['ionic',"ngCordova"])
 
 .controller('MapController', function($scope, $ionicLoading,$cordovaDevice) {
     // initial device 
-    $scope.maxX = -32768;
-    $scope.minX =  32768;
-    $scope.maxY = -32768;
-    $scope.minY =  32768;
-    $scope.maxZ = -32768;
-    $scope.minZ =  32768;
+
     $scope.maxA = -32768;
     $scope.minA =  32768;
-
+    $scope.maxAWithG = -32768;
+    $scope.minAWithG =  32768;
     //start tracking 
     $scope.deviceId=null;    
     // get id token to display
@@ -107,7 +104,8 @@ angular.module('starter', ['ionic',"ngCordova"])
     // initalize cognitoObject with idToken
     $scope.cognitoObject = new cognitoObject(idToken);
     // initialize data object to send
-    $scope.data = {"lat":0,"lng":0,maxAcceleration:0,minAcceleration:0,maxZ:0,minZ:0,timeStamp:new Date()}; 
+    $scope.data = {"lat":0,"lng":0,maxAcceleration:0,minAcceleration:0,maxAccelerationWithG:0,minAccelerationWithG:0,maxSpeed:0,minSpeed:0,timeStamp:new Date()}; 
+    $scope.prettyData = JSON.stringify($scope.data);
     $scope.initialized = false;
     // initialize allowing upload
     $scope.debugInfo = true;
@@ -141,22 +139,37 @@ angular.module('starter', ['ionic',"ngCordova"])
     function deg2rad(deg) {
       return deg * (Math.PI/180)
     }
+  //
+  var uploadLocationData = function(){
+    // reseting variable
+    $scope.maxAWithG = -32768;
+    $scope.minAWithG =  32768;
+    $scope.maxA = -32768;
+    $scope.minA =  32768;
 
+    //uploading
+    if (($scope.uploading == true) && ($scope.changedDistance>25)){
+      $scope.uploaded = $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/"+$scope.data.timeStamp.valueOf()+"-"+$scope.metaInf.deviceId,$scope.data);
+      $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/meta-"+$scope.metaInf.deviceId+"",$scope.metaInf);
+      $scope.errorMessage = "None"
+    }else{
+      $scope.uploaded = false;
+    }
+    // reset speed after upload    
+    $scope.data.maxSpeed = -32768;
+    $scope.data.minSpeed = 32768;
+    getMetas();  
+   } 
   // this call backfunction is used to update data object 
    var updateLocationData= function(pos){
       $scope.data.maxAcceleration = $scope.maxA;
       $scope.data.minAcceleration = $scope.minA;
-      $scope.data.maxZ = $scope.maxZ;
-      $scope.data.minZ = $scope.minZ;
-      // reset max,min
-      $scope.maxX = -32768;
-      $scope.minX =  32768;
-      $scope.maxY = -32768;
-      $scope.minY =  32768;
-      $scope.maxZ = -32768;
-      $scope.minZ =  32768;
-      $scope.maxA = -32768;
-      $scope.minA =  32768;
+      $scope.data.maxAccelerationWithG = $scope.maxAWithG;
+      $scope.data.minAccelerationWithG = $scope.minAWithG;
+      //$scope.data.maxZ = $scope.maxZ;
+      //$scope.data.minZ = $scope.minZ;
+
+
 
       //$scope.data.success= true;
       $scope.errCode = 0;
@@ -168,6 +181,7 @@ angular.module('starter', ['ionic',"ngCordova"])
       $scope.data.timeStamp = new Date();
       $scope.metaInf.lastTracked = $scope.data.timeStamp.valueOf();
       $scope.metaInf.lastObject = $scope.data;
+      $scope.prettyData = JSON.stringify($scope.data);
       // update display map
       $scope.mapObject.updateMap(pos);
 
@@ -180,14 +194,13 @@ angular.module('starter', ['ionic',"ngCordova"])
       }
       $scope.averageSpeed = $scope.changedDistance*1000/locationUpdateInterval*3.6 // m/s to something;
       // Initialize parameter for S3 bucket 
-      if (($scope.uploading == true) && ($scope.changedDistance>25)){
-        $scope.uploaded = $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/"+$scope.data.timeStamp.valueOf()+"-"+$scope.metaInf.deviceId,$scope.data);
-        $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/meta-"+$scope.metaInf.deviceId+"",$scope.metaInf);
-        $scope.errorMessage = "None"
-      }else{
-        $scope.uploaded = false
+      if ($scope.averageSpeed>$scope.data.maxSpeed){
+       $scope.data.maxSpeed = $scope.averageSpeed;
       }
-     getMetas();
+      if ($scope.averageSpeed<$scope.data.minSpeed){
+       $scope.data.minSpeed = $scope.averageSpeed;
+      }
+
    }
 
    var getMetas = function(callback){
@@ -234,43 +247,23 @@ angular.module('starter', ['ionic',"ngCordova"])
    trackFunction();
    // reinitialize a watch for location
    $scope.watchID =  setInterval(trackFunction,locationUpdateInterval);
-
+   setInterval(uploadLocationData,locationUploadInterval);
    $scope.devMotionHandler = function(data){
      $scope.deviceMotion = data;
      $scope.deviceAccleration = data.acceleration;
      $scope.amplitude = Math.sqrt(data.acceleration.x*data.acceleration.x+data.acceleration.y*data.acceleration.y+data.acceleration.z*data.acceleration.z);
-     
+     $scope.amplitudeWithG =Math.sqrt(data.accelerationIncludingGravity.x*data.accelerationIncludingGravity.x+data.accelerationIncludingGravity.y*data.accelerationIncludingGravity.y+data.accelerationIncludingGravity.z*data.accelerationIncludingGravity.z);
      if ($scope.amplitude > $scope.maxA) {
        $scope.maxA = $scope.amplitude;
      }
      if ($scope.amplitude < $scope.minA) {
        $scope.minA = $scope.amplitude;
      }
-
-     if (data.acceleration.z> $scope.maxZ) {
-       $scope.maxZ = data.acceleration.z;
+     if ($scope.amplitudeWithG > $scope.maxAWithG) {
+       $scope.maxAWithG = $scope.amplitudeWithG;
      }
-     if (data.acceleration.z< $scope.minZ) {
-       $scope.minZ = data.acceleration.z;
-     }
-
-     if (data.acceleration.x> $scope.maxX) {
-       $scope.maxX = data.acceleration.x;
-     }
-     if (data.acceleration.x< $scope.minX) {
-       $scope.minX = data.acceleration.x;
-     }
-     if (data.acceleration.y> $scope.maxY) {
-       $scope.maxY = data.acceleration.y;
-     }
-     if (data.acceleration.y< $scope.minY) {
-       $scope.minY = data.acceleration.y;
-     }
-     if (data.acceleration.z> $scope.maxZ) {
-       $scope.maxZ = data.acceleration.z;
-     }
-     if (data.acceleration.z< $scope.minZ) {
-       $scope.minZ = data.acceleration.z;
+     if ($scope.amplitudeWithG < $scope.minAWithG) {
+       $scope.minAWithG = $scope.amplitudeWithG;
      }
 
      $scope.$apply();
@@ -286,7 +279,6 @@ angular.module('starter', ['ionic',"ngCordova"])
 
 
   document.addEventListener("deviceready", function () {
-
      $scope.metaInf.deviceId= $cordovaDevice.getUUID();
      $scope.metaInf.deviceModel= $cordovaDevice.getModel();
   }, false);
