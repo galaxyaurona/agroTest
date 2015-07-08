@@ -61,43 +61,42 @@
       <ion-view ng-controller="MapController as mc" title="ArgoTraq">  
           <ion-content>
               <div id="map" data-tap-disabled="true"></div>
-              <h2>User Location</h2>
-              <h5 ng-if="errCode==0 &amp;&amp; watchID"><strong>Latitude:</strong> {{data.lat}} </h5>
-              <h5 ng-if="errCode==0 &amp;&amp; watchID"><strong>Longitude:</strong> {{data.lng}} </h5>
-              <h4><strong>Distance moved: </strong> {{changedDistance}} </h5>
-              <h4> Average speed:{{averageSpeed}}</h4>
-              <h4> Max speed :{{data.maxSpeed}} </h4>
-              <h4> Min speed :{{data.minSpeed}} </h4>
-              <h4 ng-if="errCode==1 &amp;&amp; watchID"> Permission to access location is denied </h4>
-              <h4 ng-if="errCode==2 &amp;&amp; watchID"> Position unavailable at the moment </h4>
-              <h4 ng-if="errCode==3 &amp;&amp; watchID"> Network unavailable </h4>
-              <h5 ng-if="watchID"><strong>Time stamp</strong>: {{data.timeStamp | date:&apos;yyyy-MM-dd HH:mm:ss&apos;}}</h5>
-
-              <!--<button class="button button-balanced" ng-click="toggleTracking()" id="getLocation-btn">Toggle Tracking</button> 
-              <button class="button button-dark" ng-click="debugInfo=!debugInfo" id="getLocation-btn">Toggle Debug Info</button> -->
-
+              <h2>Device Information</h2>
+              <h4> <strong>Identity Id:</strong> {{cognitoObject.cognigtoIdentity}}</h4>
+              <h4> <strong>Cognito ErrorMessage:</strong> {{cognitoObject.errMessage}} </h4>
+              <h4> <strong>Email: </strong> {{metaInf.email}}</h4>
+              <h4> <strong>Device Id: </strong> {{metaInf.deviceId}} </h4>
+              <h4> <strong>Device Model: </strong> {{metaInf.deviceModel}} </h4> 
               <br>
-
-
-
-
-              <h4 ng-if="debugInfo">Is tracking: {{watchID!=null}} </h4>
-              <h4 ng-if="debugInfo">Debug info: <pre>{{prettyData}} </pre> </h4>
-              <h4 ng-if="debugInfo && identityInfo">Device Info: {{metaInf.deviceModel}} with id:{{metaInf.deviceId}} </h4>
-              <h4 ng-if="debugInfo && identityInfo">Cognito Identity: {{cognitoObject.cognigtoIdentity}} </h4>
-              <h4 ng-if="debugInfo && identityInfo">Cognito ErrorMessage: {{cognitoObject.errMessage}} </h4>
-              <h4 ng-if="debugInfo && identityInfo">User email: {{metaInf.email}} </h4>
-              <h4 ng-if="debugInfo">Allow Uploading: {{uploading}} </h4>
-              <h4> identityId : {{cognitoObject.cognigtoIdentity}} </h4>
-
-              <h5 ng-if="debugInfo">Device acceleration: {{deviceAccleration}}</h5> 
-              <h5 ng-if="debugInfo">Acceleration amplitude: {{amplitude}}</h5> 
-              <h5 ng-if="debugInfo">Max amplitude: {{maxA}}</h5> 
-              <h5 ng-if="debugInfo">Min amplitude: {{minA}}</h5>  
-
-              <h4 ng-if="debugInfo">Uploaded: {{uploaded}} </h4>
+              <h4> <strong>Is tracking:</strong> {{watchID!=null}} </h4>
+              <br>
+              <h4><strong>Latitude:</strong> {{data.lat}} </h4>
+              <h4><strong>Longitude:</strong> {{data.lng}} </h4>   
+              <h4 ng-if="watchID"><strong>Time stamp</strong>: {{data.timeStamp | date:&apos;yyyy-MM-dd HH:mm:ss&apos;}}</h4>
+              <br>
+              <h4><strong>Distance moved: </strong> {{changedDistance}} m </h5>
+              <h4><strong>Max Distance moved: </strong> {{maxChangedDistance}} m </h5>
+              <h4><strong>Instantianeous speed: </strong>{{averageSpeed}} km/h</h4>
+              <h4><strong>Max speed :</strong>  {{data.maxSpeed}} km/h</h4>
+              <h4><strong>Min speed :</strong>  {{data.minSpeed}} km/h</h4>    
+              <br>          
+              <h4 ng-if="debugInfo">Device acceleration: {{deviceAccleration}}</h4>
+              <h4 ng-if="debugInfo">Device acceleration with gravity: {{deviceAcclerationWithG}}</h4>
+              <br>
+              <h4 ng-if="debugInfo">Acceleration amplitude: {{amplitude}} m/s<sup>2</sup></h4> 
+              <h4 ng-if="debugInfo">Acceleration amplitude with gravity: {{amplitudeWithG}} m/s<sup>2</sup></h4> 
+              <br>
+              <h4 ng-if="debugInfo">Putting data: {{dataName}} <pre>{{prettyData}} </pre> </h4>
+              <h4 ng-if="debugInfo">Put Error: {{uploaded}} </h4>
+              <br>
               
-`
+              <br>
+              <h4 ng-if="debugInfo">Putting meta data: {{metaName}} <pre>{{prettyMetaData}} </pre> </h4>
+              <h4 ng-if="debugInfo">Put Error: {{metaUploaded}} </h4>
+              <br>
+              
+              
+  
           </ion-content>
       </ion-view>
 

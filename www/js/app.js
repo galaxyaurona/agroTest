@@ -103,13 +103,17 @@ angular.module('starter', ['ionic',"ngCordova"])
     $scope.mapObject = new mapObject(); 
     // initalize cognitoObject with idToken
     $scope.cognitoObject = new cognitoObject(idToken);
+    $scope.deviceMotion={a:'1'};
     // initialize data object to send
     $scope.data = {"lat":0,"lng":0,maxAcceleration:0,minAcceleration:0,maxAccelerationWithG:0,minAccelerationWithG:0,maxSpeed:0,minSpeed:0,timeStamp:new Date()}; 
-    $scope.prettyData = JSON.stringify($scope.data);
+    $scope.prettyData = JSON.stringify($scope.data,null,4);
     $scope.initialized = false;
+    $scope.maxChangedDistance = 0;
     // initialize allowing upload
     $scope.debugInfo = true;
     $scope.uploading=true;
+    $scope.uploaded = "Movement not detected";
+    $scope.metaUploaded = "Movement not detected";
     // get google response for debugging purpose
     $scope.googleResponse = googleResponse;
 
@@ -146,18 +150,20 @@ angular.module('starter', ['ionic',"ngCordova"])
     $scope.minAWithG =  32768;
     $scope.maxA = -32768;
     $scope.minA =  32768;
-
+    $scope.dataName = $scope.data.timeStamp.valueOf()+"-"+$scope.metaInf.deviceId;
+    $scope.metaName = "meta-"+$scope.metaInf.deviceId
     //uploading
-    if (($scope.uploading == true) && ($scope.changedDistance>25)){
-      $scope.uploaded = $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/"+$scope.data.timeStamp.valueOf()+"-"+$scope.metaInf.deviceId,$scope.data);
-      $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/meta-"+$scope.metaInf.deviceId+"",$scope.metaInf);
+    if (($scope.uploading == true) && ($scope.maxChangedDistance>10)){
+      $scope.uploaded = $scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/"+$scope.dataName,$scope.data);
+      $scope.metaUploaded=$scope.s3Object.upload($scope.cognitoObject.cognigtoIdentity+"/"+$scope.metaName,$scope.metaInf);
       $scope.errorMessage = "None"
     }else{
-      $scope.uploaded = false;
+      $scope.uploaded = "Movement not detected";
     }
     // reset speed after upload    
     $scope.data.maxSpeed = -32768;
     $scope.data.minSpeed = 32768;
+    $scope.maxChangedDistance = 0;
     getMetas();  
    } 
   // this call backfunction is used to update data object 
@@ -181,7 +187,8 @@ angular.module('starter', ['ionic',"ngCordova"])
       $scope.data.timeStamp = new Date();
       $scope.metaInf.lastTracked = $scope.data.timeStamp.valueOf();
       $scope.metaInf.lastObject = $scope.data;
-      $scope.prettyData = JSON.stringify($scope.data);
+      $scope.prettyData = JSON.stringify($scope.data,null,4);
+      $scope.prettyMetaData = JSON.stringify($scope.metaInf,null,4);
       // update display map
       $scope.mapObject.updateMap(pos);
 
@@ -190,9 +197,12 @@ angular.module('starter', ['ionic',"ngCordova"])
       if ($scope.prevLat==0){ // special case initialization
         $scope.changedDistance =0;
       }else{
-        $scope.changedDistance= getDistanceFromLatLon($scope.data.lat,$scope.data.lng,$scope.prevLat,$scope.prevLng);
+        $scope.changedDistance= Math.round(getDistanceFromLatLon($scope.data.lat,$scope.data.lng,$scope.prevLat,$scope.prevLng)*10)/10;
       }
-      $scope.averageSpeed = $scope.changedDistance*1000/locationUpdateInterval*3.6 // m/s to something;
+      if ($scope.changedDistance>$scope.maxChangedDistance){
+        $scope.maxChangedDistance = $scope.changedDistance;
+      }
+      $scope.averageSpeed = Math.round($scope.changedDistance*1000/locationUpdateInterval*3.6) // m/s to something;
       // Initialize parameter for S3 bucket 
       if ($scope.averageSpeed>$scope.data.maxSpeed){
        $scope.data.maxSpeed = $scope.averageSpeed;
@@ -249,10 +259,10 @@ angular.module('starter', ['ionic',"ngCordova"])
    $scope.watchID =  setInterval(trackFunction,locationUpdateInterval);
    setInterval(uploadLocationData,locationUploadInterval);
    $scope.devMotionHandler = function(data){
-     $scope.deviceMotion = data;
-     $scope.deviceAccleration = data.acceleration;
-     $scope.amplitude = Math.sqrt(data.acceleration.x*data.acceleration.x+data.acceleration.y*data.acceleration.y+data.acceleration.z*data.acceleration.z);
-     $scope.amplitudeWithG =Math.sqrt(data.accelerationIncludingGravity.x*data.accelerationIncludingGravity.x+data.accelerationIncludingGravity.y*data.accelerationIncludingGravity.y+data.accelerationIncludingGravity.z*data.accelerationIncludingGravity.z);
+     $scope.deviceAccleration = '{x: '+Math.round(data.acceleration.x*10)/10 + '\n'+ ',y: '+Math.round(data.acceleration.y*10)/10 + '\n'+ ',z: '+Math.round(data.acceleration.z*10)/10+'}';
+     $scope.deviceAcclerationWithG = '{x: '+Math.round(data.accelerationIncludingGravity.x*10)/10 + '\n'+ ',y: '+Math.round(data.accelerationIncludingGravity.y*10)/10 + '\n'+ ',z: '+Math.round(data.accelerationIncludingGravity.z*10)/10+'}';
+     $scope.amplitude = Math.round(Math.sqrt(data.acceleration.x*data.acceleration.x+data.acceleration.y*data.acceleration.y+data.acceleration.z*data.acceleration.z)*10)/10;
+     $scope.amplitudeWithG = Math.round(Math.sqrt(data.accelerationIncludingGravity.x*data.accelerationIncludingGravity.x+data.accelerationIncludingGravity.y*data.accelerationIncludingGravity.y+data.accelerationIncludingGravity.z*data.accelerationIncludingGravity.z)*10)/10;
      if ($scope.amplitude > $scope.maxA) {
        $scope.maxA = $scope.amplitude;
      }
@@ -402,6 +412,7 @@ var cognitoObject = function(id_token){
        if (!err) {
             vm.cognigtoIdentity = AWS.config.credentials.identityId;
             vm.awsCredentials = AWS.config.credentials;
+            vm.errMessage="Success!";
        }else{
         vm.errMessage =err.message;
        }
@@ -417,7 +428,7 @@ var s3Object = function(awsCredentials){
   vm.path = "";
   vm.filename= '';
   vm.data='';
-  vm.uploadResult = false;
+  vm.uploadResult ="";
   vm.bucketParams = {
         // bucket name
         Bucket:vm.bucket, 
@@ -451,8 +462,8 @@ var s3Object = function(awsCredentials){
       vm.setFileName(filename);
       vm.setData(file);
       vm.S3.putObject(vm.bucketParams,function(err,data){
-        if (err) {vm.uploadResult =false} // an error occurred
-        else     {vm.uploadResult=true;} // successful response
+        if (err) {vm.uploadResult=err.message} // an error occurred
+        else     {vm.uploadResult="Success!";} // successful response
        
       });
      return vm.uploadResult    
