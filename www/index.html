@@ -61,7 +61,12 @@
       <ion-view ng-controller="MapController as mc" title="ArgoTraq">  
           <ion-content>
               <div id="map" data-tap-disabled="true"></div>
+              <h1>Debug info</h1>
+              <h4><pre>{{gpsInstancePretty}}</pre></h4>
+              <h4>{{updateCount}}</h4> 
+              <h4>Upload triggered: {{triggerUpload}}</h4>
               <h2>Device Information</h2>
+             
               <h4> <strong>Identity Id:</strong> {{cognitoObject.cognigtoIdentity}}</h4>
               <h4> <strong>Cognito ErrorMessage:</strong> {{cognitoObject.errMessage}} </h4>
               <h4> <strong>Email: </strong> {{metaInf.email}}</h4>
@@ -77,8 +82,8 @@
               <h4><strong>Distance moved: </strong> {{changedDistance}} m </h5>
               <h4><strong>Max Distance moved: </strong> {{maxChangedDistance}} m </h5>
               <h4><strong>Instantianeous speed: </strong>{{averageSpeed}} km/h</h4>
-              <h4><strong>Max speed :</strong>  {{data.maxSpeed}} km/h</h4>
-              <h4><strong>Min speed :</strong>  {{data.minSpeed}} km/h</h4>    
+              <h4><strong>Max speed :</strong>  {{maxSpeed}} km/h</h4>
+              <h4><strong>Min speed :</strong>  {{minSpeed}} km/h</h4>    
               <br>          
               <h4 ng-if="debugInfo">Device acceleration: {{deviceAccleration}}</h4>
               <h4 ng-if="debugInfo">Device acceleration with gravity: {{deviceAcclerationWithG}}</h4>

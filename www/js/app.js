@@ -11,6 +11,7 @@ var posOptions = {timeout: 5000, enableHighAccuracy: true};
 
 var locationUpdateInterval = 5000; // in ms
 var locationUploadInterval = 30000;
+var syncInstance = locationUploadInterval/locationUpdateInterval;
     // initialized default location and map options
 
 
@@ -88,9 +89,9 @@ angular.module('starter', ['ionic',"ngCordova"])
     
 })
 
-.controller('MapController', function($scope, $ionicLoading,$cordovaDevice) {
+.controller('MapController', function($scope, $ionicLoading,$cordovaDevice,$ionicPlatform) {
     // initial device 
-
+    $scope.gpsInstance = {'coords':{},};
     $scope.maxA = -32768;
     $scope.minA =  32768;
     $scope.maxAWithG = -32768;
@@ -116,12 +117,13 @@ angular.module('starter', ['ionic',"ngCordova"])
     $scope.metaUploaded = "Movement not detected";
     // get google response for debugging purpose
     $scope.googleResponse = googleResponse;
-
+    $scope.maxSpeed= -32768;
+    $scope.minSpeed= 32768;
     $scope.metaInf = {deviceId:"",deviceModel:"",email:"",lastTracked:"",lastObject:{}}
 
     $scope.s3Object = new s3Object($scope.cognitoObject.awsCredentials);
     $scope.metaInf.email=$scope.cognitoObject.userEmail;
-
+    $scope.updateCount =0;
     // END INITIALIZATION
 
     //console.log( $scope.s3Object)
@@ -161,13 +163,37 @@ angular.module('starter', ['ionic',"ngCordova"])
       $scope.uploaded = "Movement not detected";
     }
     // reset speed after upload    
-    $scope.data.maxSpeed = -32768;
-    $scope.data.minSpeed = 32768;
+    $scope.maxSpeed = -32768;
+    $scope.minSpeed = 32768;
     $scope.maxChangedDistance = 0;
     getMetas();  
    } 
   // this call backfunction is used to update data object 
    var updateLocationData= function(pos){
+      //Debug info for GPS accuracy
+     //console.log(pos);
+      $scope.gpsInstance.timeInteval = pos.timestamp - $scope.gpsInstance.timeStamp;
+      $scope.gpsInstance.timeStamp = pos.timestamp;
+      $scope.gpsInstance.coords.lat = pos.coords.lat;
+      $scope.gpsInstance.coords.lng = pos.coords.lng;
+      $scope.gpsInstance.coords.accuracy = pos.coords.accuracy;
+      $scope.gpsInstancePretty = JSON.stringify($scope.gpsInstance,null,4);
+      
+      // need this to do first
+      if ($scope.gpsInstance.timeInteval > 1000) { // valid time interval
+         $scope.averageSpeed = Math.round($scope.changedDistance*1000/$scope.gpsInstance.timeInteval*3.6) // m/s to something;
+      }
+     
+      // Initialize parameter for S3 bucket 
+      if ($scope.averageSpeed>$scope.maxSpeed){
+       $scope.maxSpeed = $scope.averageSpeed;
+      }
+      if ($scope.averageSpeed<$scope.minSpeed){
+       $scope.minSpeed = $scope.averageSpeed;
+      }
+
+      $scope.data.maxSpeed = $scope.maxSpeed;
+      $scope.data.minSpeed = $scope.minSpeed;
       $scope.data.maxAcceleration = $scope.maxA;
       $scope.data.minAcceleration = $scope.minA;
       $scope.data.maxAccelerationWithG = $scope.maxAWithG;
@@ -202,15 +228,14 @@ angular.module('starter', ['ionic',"ngCordova"])
       if ($scope.changedDistance>$scope.maxChangedDistance){
         $scope.maxChangedDistance = $scope.changedDistance;
       }
-      $scope.averageSpeed = Math.round($scope.changedDistance*1000/locationUpdateInterval*3.6) // m/s to something;
-      // Initialize parameter for S3 bucket 
-      if ($scope.averageSpeed>$scope.data.maxSpeed){
-       $scope.data.maxSpeed = $scope.averageSpeed;
-      }
-      if ($scope.averageSpeed<$scope.data.minSpeed){
-       $scope.data.minSpeed = $scope.averageSpeed;
-      }
 
+      $scope.updateCount= ($scope.updateCount+1)%syncInstance;
+      if ($scope.updateCount == 0){
+        uploadLocationData();
+        $scope.triggerUpload = true;
+      }else{
+        $scope.triggerUpload = false;
+      }
    }
 
    var getMetas = function(callback){
@@ -257,12 +282,14 @@ angular.module('starter', ['ionic',"ngCordova"])
    trackFunction();
    // reinitialize a watch for location
    $scope.watchID =  setInterval(trackFunction,locationUpdateInterval);
-   setInterval(uploadLocationData,locationUploadInterval);
+   //setInterval(uploadLocationData,locationUploadInterval);
+   
    $scope.devMotionHandler = function(data){
      $scope.deviceAccleration = '{x: '+Math.round(data.acceleration.x*10)/10 + '\n'+ ',y: '+Math.round(data.acceleration.y*10)/10 + '\n'+ ',z: '+Math.round(data.acceleration.z*10)/10+'}';
      $scope.deviceAcclerationWithG = '{x: '+Math.round(data.accelerationIncludingGravity.x*10)/10 + '\n'+ ',y: '+Math.round(data.accelerationIncludingGravity.y*10)/10 + '\n'+ ',z: '+Math.round(data.accelerationIncludingGravity.z*10)/10+'}';
      $scope.amplitude = Math.round(Math.sqrt(data.acceleration.x*data.acceleration.x+data.acceleration.y*data.acceleration.y+data.acceleration.z*data.acceleration.z)*10)/10;
      $scope.amplitudeWithG = Math.round(Math.sqrt(data.accelerationIncludingGravity.x*data.accelerationIncludingGravity.x+data.accelerationIncludingGravity.y*data.accelerationIncludingGravity.y+data.accelerationIncludingGravity.z*data.accelerationIncludingGravity.z)*10)/10;
+     
      if ($scope.amplitude > $scope.maxA) {
        $scope.maxA = $scope.amplitude;
      }
@@ -286,9 +313,19 @@ angular.module('starter', ['ionic',"ngCordova"])
   }else{
     $scope.motionSupport = "DeviceMotion is supported";
   }
-
+  $ionicPlatform.registerBackButtonAction(function () {
+    if (1>2) {
+      navigator.app.exitApp();
+    } else {
+     
+    }
+  }, 100);
 
   document.addEventListener("deviceready", function () {
+     cordova.plugins.backgroundMode.enable();
+     document.addEventListener("backbutton", function (e) {
+                 e.preventDefault();
+             }, false );
      $scope.metaInf.deviceId= $cordovaDevice.getUUID();
      $scope.metaInf.deviceModel= $cordovaDevice.getModel();
   }, false);
