@@ -10,7 +10,7 @@ var accountID = "940653267411";
 var posOptions = {timeout: 5000, enableHighAccuracy: true}; 
 
 var locationUpdateInterval = 5000; // in ms
-var locationUploadInterval = 30000;
+var locationUploadInterval = 60000;
 var syncInstance = locationUploadInterval/locationUpdateInterval;
     // initialized default location and map options
 
@@ -91,7 +91,7 @@ angular.module('starter', ['ionic',"ngCordova"])
 
 .controller('MapController', function($scope, $ionicLoading,$cordovaDevice,$ionicPlatform) {
     // initial device 
-    $scope.gpsInstance = {'coords':{},};
+    $scope.gpsInstance = {'coords':{},'timeInteval':0,'errorCount':0};
     $scope.maxA = -32768;
     $scope.minA =  32768;
     $scope.maxAWithG = -32768;
@@ -152,7 +152,7 @@ angular.module('starter', ['ionic',"ngCordova"])
     $scope.minAWithG =  32768;
     $scope.maxA = -32768;
     $scope.minA =  32768;
-    $scope.dataName = $scope.data.timeStamp.valueOf()+"-"+$scope.metaInf.deviceId;
+    $scope.dataName = $scope.metaInf.deviceId+'/'+$scope.data.timeStamp.valueOf();
     $scope.metaName = "meta-"+$scope.metaInf.deviceId
     //uploading
     if (($scope.uploading == true) && ($scope.maxChangedDistance>10)){
@@ -171,10 +171,38 @@ angular.module('starter', ['ionic',"ngCordova"])
   // this call backfunction is used to update data object 
    var updateLocationData= function(pos){
       //Debug info for GPS accuracy
+
      //console.log(pos);
      // FIXME : the speed is wildly inaccurate on some devices (over 200km/h) because the gps position isn't updated as often as it's checked
      // TODO : only update the speed if ($scope.gpsInstance.coords.lat !== pos.coords.lat or $scope.gpsInstance.coords.lng !== pos.coords.lng)
-      $scope.gpsInstance.timeInteval = pos.timestamp - $scope.gpsInstance.timeStamp;
+     // $scope.gpsInstance.timeInteval = pos.timestamp - $scope.gpsInstance.timeStamp;
+
+     // calculate changed of distance
+     if ($scope.prevLat==0){ // special case initialization
+       $scope.changedDistance =0;
+     }else{
+       $scope.changedDistance= Math.round(getDistanceFromLatLon($scope.data.lat,$scope.data.lng,$scope.prevLat,$scope.prevLng)*10)/10;
+     }
+     // find out the max change of distance to determind whether to push it to S3 or not
+     if ($scope.changedDistance>$scope.maxChangedDistance){
+       $scope.maxChangedDistance = $scope.changedDistance;
+     }
+
+     if ($scope.changedDistance < 3){  // indicate that there is gps error or object is stationary if not moving more than 3 m
+        $scope.gpsInstance.errorCount++; // count number of GPS errors
+        if ($scope.gpsInstance.errorCount>3){ // assuming maximum 3 error, more thản just mean stationary for 15s (redlight)
+          // FIXME: 90 seconds isnt't enough time to avoid overestimate on startup- prefer to have an underestimate than an overestimate
+          $scope.gpsInstance.errorCount = 0; // reset error count since this has been classified as stationary
+          $scope.gpsInstance.timeInteval =0 ;  // reset time interval to make sure data is marginally correct
+        }
+     }else{ // device is moving , gps is working
+        $scope.gpsInstance.errorCount = 0; // reset error count 
+        $scope.gpsInstance.timeInteval =0 ; // timeinterval is fine
+     }
+
+
+      $scope.gpsInstance.timeInteval += (pos.timestamp - $scope.gpsInstance.timeStamp);
+
       $scope.gpsInstance.timeStamp = pos.timestamp;
       $scope.gpsInstance.coords.lat = pos.coords.lat;
       $scope.gpsInstance.coords.lng = pos.coords.lng;
@@ -222,14 +250,7 @@ angular.module('starter', ['ionic',"ngCordova"])
 
       //propagate change through the scope
       $scope.$apply();
-      if ($scope.prevLat==0){ // special case initialization
-        $scope.changedDistance =0;
-      }else{
-        $scope.changedDistance= Math.round(getDistanceFromLatLon($scope.data.lat,$scope.data.lng,$scope.prevLat,$scope.prevLng)*10)/10;
-      }
-      if ($scope.changedDistance>$scope.maxChangedDistance){
-        $scope.maxChangedDistance = $scope.changedDistance;
-      }
+
 
       $scope.updateCount= ($scope.updateCount+1)%syncInstance;
       if ($scope.updateCount == 0){
