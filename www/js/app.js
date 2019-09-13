@@ -172,6 +172,11 @@ angular.module('starter', ['ionic',"ngCordova"])
    var updateLocationData= function(pos){
       //Debug info for GPS accuracy
 
+     //console.log(pos);
+     // FIXME : the speed is wildly inaccurate on some devices (over 200km/h) because the gps position isn't updated as often as it's checked
+     // TODO : only update the speed if ($scope.gpsInstance.coords.lat !== pos.coords.lat or $scope.gpsInstance.coords.lng !== pos.coords.lng)
+     // $scope.gpsInstance.timeInteval = pos.timestamp - $scope.gpsInstance.timeStamp;
+
      // calculate changed of distance
      if ($scope.prevLat==0){ // special case initialization
        $scope.changedDistance =0;
@@ -186,6 +191,7 @@ angular.module('starter', ['ionic',"ngCordova"])
      if ($scope.changedDistance < 3){  // indicate that there is gps error or object is stationary if not moving more than 3 m
         $scope.gpsInstance.errorCount++; // count number of GPS errors
         if ($scope.gpsInstance.errorCount>3){ // assuming maximum 3 error, more thản just mean stationary for 15s (redlight)
+          // FIXME: 90 seconds isnt't enough time to avoid overestimate on startup- prefer to have an underestimate than an overestimate
           $scope.gpsInstance.errorCount = 0; // reset error count since this has been classified as stationary
           $scope.gpsInstance.timeInteval =0 ;  // reset time interval to make sure data is marginally correct
         }
